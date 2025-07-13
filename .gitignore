@@ -1,0 +1,6 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 데이터 폴더 제외 (데이터 용량 큼)
+data/
