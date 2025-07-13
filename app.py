@@ -3,45 +3,40 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-st.title("Baseball Savant 홈런 발사각 & 비거리 분석")
-
-seasons = list(range(1998, 2025))
-selected_seasons = st.multiselect("분석할 시즌을 선택하세요", seasons, default=[2024])
+st.set_page_config(page_title="2025 홈런 분석", layout="wide")
+st.title("⚾ 2025년 홈런 발사각 & 비거리 분석")
 
 @st.cache_data
-def load_data(seasons):
-    dfs = []
-    for season in seasons:
-        try:
-            path = f"data/{season}_statcast.csv"
-            df = pd.read_csv(path)
-            df['season'] = season
-            dfs.append(df)
-        except FileNotFoundError:
-            st.warning(f"{season} 데이터가 없습니다.")
-    if dfs:
-        return pd.concat(dfs, ignore_index=True)
-    else:
-        return pd.DataFrame()
+def load_2025_data():
+    df = pd.read_csv("data/2025_statcast.csv")
+    df['season'] = 2025
+    return df
 
-data = load_data(selected_seasons)
+data = load_2025_data()
 
-if not data.empty:
+# 유효성 검사
+if data.empty:
+    st.error("데이터를 불러올 수 없습니다. 파일 경로 또는 내용 확인 필요.")
+else:
+    # 선수명 자동완성용 리스트
     player_list = sorted(data['player_name'].dropna().unique())
-    player_name = st.selectbox("선수를 선택하세요", player_list)
+    player_name = st.selectbox("분석할 선수를 선택하세요", player_list)
+
+    # 홈런 데이터 필터링
     hr_data = data[(data['player_name'] == player_name) & (data['events'] == 'home_run')]
 
     if hr_data.empty:
-        st.write(f"{player_name}의 홈런 데이터가 없습니다.")
+        st.warning(f"{player_name}의 홈런 데이터가 없습니다.")
     else:
-        st.write(f"{player_name}의 {len(hr_data)}개 홈런 데이터")
+        st.success(f"{player_name}의 2025 시즌 홈런 {len(hr_data)}개 분석 결과")
+        avg_angle = hr_data['launch_angle'].mean()
+        avg_dist = hr_data['hit_distance_sc'].mean()
+        st.write(f"📐 평균 발사각: **{avg_angle:.1f}°**, 📏 평균 비거리: **{avg_dist:.1f} ft**")
+
+        # 산점도
         plt.figure(figsize=(10,6))
-        sns.scatterplot(data=hr_data, x='launch_angle', y='hit_distance_sc', hue='season', palette='tab20')
-        plt.title(f"{player_name} 홈런 발사각 vs 비거리")
+        sns.scatterplot(data=hr_data, x='launch_angle', y='hit_distance_sc', color='crimson')
+        plt.title(f"{player_name} - 2025 홈런 발사각 vs 비거리")
         plt.xlabel("발사각 (Launch Angle, degrees)")
         plt.ylabel("비거리 (Hit Distance, feet)")
-        plt.legend(title='Season')
         st.pyplot(plt)
-
-else:
-    st.info("선택한 시즌의 데이터가 없습니다.")
